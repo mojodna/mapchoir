@@ -1,0 +1,13 @@
+{
+  "name": "mapchoir",
+  "version": "0.0.0",
+  "description": "Choir.io integration for maps.stamen.com",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "crequest": "~0.1.2",
+    "async": "~0.2.9",
+    "through": "~2.3.4"
+  }
+}
