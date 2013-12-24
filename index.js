@@ -7,14 +7,17 @@ var async = require("async"),
     request = require("crequest"),
     through = require("through");
 
-var DELAY = 2000;
+var DELAY = 2000,
+    PAPERTRAIL_TOKEN = env.require("PAPERTRAIL_TOKEN"),
+    CHOIR_IO_API_KEY = env.require("CHOIR_IO_API_KEY"),
+    SAMPLE_RATE = process.env.SAMPLE_RATE || 100;
 
 var eventsSearch = function(params, callback) {
   return request.get({
     uri: "https://papertrailapp.com/api/v1/events/search",
     qs: params,
     headers: {
-      "X-Papertrail-Token": env.require("PAPERTRAIL_TOKEN")
+      "X-Papertrail-Token": PAPERTRAIL_TOKEN
     }
   }, function(err, rsp, body) {
     if (err) {
@@ -78,10 +81,10 @@ tail()
         referrer = parts[1],
         style = req.split(" ")[1].split("/")[1];
 
-    // sample at 10%
-    if (Math.random() * 100 <= 10) {
+    // sample
+    if (Math.random() * 100 <= SAMPLE_RATE) {
       return request.post({
-        uri: "https://api.choir.io/" + env.require("CHOIR_IO_API_KEY"),
+        uri: "https://api.choir.io/" + CHOIR_IO_API_KEY,
         form: {
           label: style,
           sound: "n/" + Math.round(Math.random()),

@@ -22,5 +22,6 @@ Why not?
 
 ## Environment Variables
 
-* `PAPERTRAIL_TOKEN` - papertrail token.
-* `CHOIR_IO_API_KEY` - choir.io API key.
+* `PAPERTRAIL_TOKEN` - papertrail token (required).
+* `CHOIR_IO_API_KEY` - choir.io API key (required).
+* `SAMPLE_RATE` - sample rate (optional).
