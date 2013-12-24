@@ -78,23 +78,26 @@ tail()
         referrer = parts[1],
         style = req.split(" ")[1].split("/")[1];
 
-    return request.post({
-      uri: "https://api.choir.io/" + env.require("CHOIR_IO_API_KEY"),
-      form: {
-        label: style,
-        sound: "n/" + Math.round(Math.random()),
-        text: util.format("%s: %s", style, referrer || "unknown"),
-        sprinkle: DELAY
-      }
-    }, function(err, rsp, body) {
-      if (err) {
-        console.error(err.stack);
-        return;
-      }
+    // sample at 10%
+    if (Math.random() * 100 <= 10) {
+      return request.post({
+        uri: "https://api.choir.io/" + env.require("CHOIR_IO_API_KEY"),
+        form: {
+          label: style,
+          sound: "n/" + Math.round(Math.random()),
+          text: util.format("%s: %s", style, referrer || "unknown"),
+          sprinkle: DELAY
+        }
+      }, function(err, rsp, body) {
+        if (err) {
+          console.error(err.stack);
+          return;
+        }
 
-      if (rsp.statusCode !== 200) {
-        console.error(body);
-        return;
-      }
-    });
+        if (rsp.statusCode !== 200) {
+          console.error(body);
+          return;
+        }
+      });
+    }
   }));
