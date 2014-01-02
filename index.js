@@ -10,7 +10,7 @@ var BinarySplitter = require("./lib/binary-splitter");
 
 var CHOIR_IO_API_KEY = env.require("CHOIR_IO_API_KEY"),
     LOG_URL = env.require("LOG_URL"),
-    SAMPLE_RATE = process.env.SAMPLE_RATE || 100;
+    SAMPLE_RATE = +process.env.SAMPLE_RATE || 100;
 
 var LogStream = function(url) {
   stream.PassThrough.call(this);
