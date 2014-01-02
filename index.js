@@ -1,106 +1,75 @@
 "use strict";
 
-var util = require("util");
+var stream = require("stream"),
+    util = require("util");
 
-var async = require("async"),
-    env = require("require-env"),
-    request = require("crequest"),
-    through = require("through");
+var env = require("require-env"),
+    request = require("crequest");
 
-var DELAY = 2000,
-    PAPERTRAIL_TOKEN = env.require("PAPERTRAIL_TOKEN"),
-    CHOIR_IO_API_KEY = env.require("CHOIR_IO_API_KEY"),
+var BinarySplitter = require("./lib/binary-splitter");
+
+var CHOIR_IO_API_KEY = env.require("CHOIR_IO_API_KEY"),
+    LOG_URL = env.require("LOG_URL"),
     SAMPLE_RATE = process.env.SAMPLE_RATE || 100;
 
-var eventsSearch = function(params, callback) {
-  return request.get({
-    uri: "https://papertrailapp.com/api/v1/events/search",
-    qs: params,
-    headers: {
-      "X-Papertrail-Token": PAPERTRAIL_TOKEN
-    }
-  }, function(err, rsp, body) {
-    if (err) {
-      return callback(err);
-    }
+var LogStream = function(url) {
+  stream.PassThrough.call(this);
 
-    var payload = body.events.map(function(x) {
-      var parts = x.message.split('"'),
-          req = parts[1],
-          referrer = parts[3],
-          agent = parts[5];
-
-      if (referrer === "(null)") {
-        referrer = "";
-      }
-
-      return {
-        request: req,
-        referrer: referrer,
-        agent: agent
-      };
-    });
-
-    return callback(null, payload, { min_id: body.max_id }, body.reached_record_limit);
-  });
+  // TODO error / close handling
+  var source = request.get(url);
+  source.pipe(this);
 };
 
-var tail = function() {
-  var params = {},
-      stream = through();
+util.inherits(LogStream, stream.PassThrough);
 
-  async.forever(function(callback) {
-    return eventsSearch(params, function(err, data, _params, immediate) {
-      if (err) {
-        return callback(err);
-      }
+var ChoirStream = function(key) {
+  stream.Writable.call(this);
 
-      data.forEach(function(x) {
-        stream.write(util.format("%s\t%s\t%s\n", x.request, x.referrer, x.agent));
-      });
-
-      params = _params;
-
-      if (immediate) {
-        return callback();
-      }
-
-      setTimeout(callback, DELAY);
-    });
-  }, function(err) {
-    console.error(err.stack);
-  });
-
-  return stream;
-};
-
-tail()
-  .pipe(through(function(data) {
-    var parts = data.split("\t"),
-        req = parts[0],
-        referrer = parts[1],
-        style = req.split(" ")[1].split("/")[1];
-
+  this._write = function(chunk, encoding, callback) {
     // sample
     if (Math.random() * 100 <= SAMPLE_RATE) {
-      return request.post({
-        uri: "https://api.choir.io/" + CHOIR_IO_API_KEY,
-        form: {
-          label: style,
-          sound: "n/" + Math.round(Math.random()),
-          text: util.format("%s: %s", style, referrer || "unknown"),
-          sprinkle: DELAY
-        }
-      }, function(err, rsp, body) {
-        if (err) {
-          console.error(err.stack);
-          return;
+      var parts = chunk.toString().trim().split('"'),
+          referrer = parts[3],
+          agent = parts[5],
+          style = parts[1].split("/")[1];
+
+      if (style.indexOf("?") < 0) {
+        // skip raw watercolor URLs
+
+        var text = util.format("%s: <a href=\"%s\">%s</a>", style, referrer, referrer);
+
+        if (referrer === "(null)") {
+          text = util.format("%s: %s", style, agent);
         }
 
-        if (rsp.statusCode !== 200) {
-          console.error(body);
-          return;
-        }
-      });
+        // fire and forget
+        request.post({
+          uri: "https://api.choir.io/" + key,
+          form: {
+            label: style,
+            sound: "n/" + Math.round(Math.random()),
+            text: text
+          }
+        }, function(err, rsp, body) {
+          if (err) {
+            console.warn(err.stack);
+            return;
+          }
+
+          if (rsp.statusCode !== 200) {
+            console.warn(body);
+            return;
+          }
+        });
+      }
     }
-  }));
+
+    return callback();
+  };
+};
+
+util.inherits(ChoirStream, stream.Writable);
+
+new LogStream(LOG_URL)
+  .pipe(new BinarySplitter())
+  .pipe(new ChoirStream(CHOIR_IO_API_KEY));
