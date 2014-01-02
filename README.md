@@ -6,15 +6,14 @@
 ## How?
 
 1. maps.stamen.com tiles are served via [Fastly](http://fastly.net/).
-2. Fastly [syslogs](http://help.papertrailapp.com/kb/hosting-services/fastly)
+2. Fastly
+   [syslogs](https://fastly.zendesk.com/entries/21713181-Remote-log-streaming-setup)
    request URLs, HTTP referrers, and user agents to
-   [papertrail](https://papertrailapp.com/) using the format `"%r"
+   [`log-nexus`](https://github.com/mojodna/log-nexus) using the format `"%r"
    "req.http.referer" "req.http.user-agent"`.
-3. `mapchoir` follows [papertrail
-   events](http://help.papertrailapp.com/kb/how-it-works/http-api#events) (in
-   `tail()`) and outputs them to a stream.
-4. A pipeline is created using [`through`](https://github.com/dominictarr/through).
-5. Stream events are pushed to Choir.io.
+3. `mapchoir` listens to `log-nexus` messages over HTTP and outputs them to
+   a stream.
+4. Stream events are pushed to Choir.io.
 
 ## Why?
 
@@ -22,6 +21,6 @@ Why not?
 
 ## Environment Variables
 
-* `PAPERTRAIL_TOKEN` - papertrail token (required).
 * `CHOIR_IO_API_KEY` - choir.io API key (required).
+* `LOG_URL` - [log-nexus](https://github.com/mojodna/log-nexus) URL (required).
 * `SAMPLE_RATE` - sample rate (optional).
