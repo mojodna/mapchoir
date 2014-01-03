@@ -52,25 +52,29 @@ var ChoirStream = function(key) {
       return callback();
     }
 
-    return request.post({
-      uri: "https://api.choir.io/" + key,
-      form: {
-        label: task.style,
-        sound: "n/" + Math.round(Math.random()),
-        text: task.text
-      },
-      timeout: 2000
-    }, function(err, rsp, body) {
-      if (err) {
-        console.warn(err.stack);
-      }
+    return request
+      .post({
+        uri: "https://api.choir.io/" + key,
+        form: {
+          label: task.style,
+          sound: "n/" + Math.round(Math.random()),
+          text: task.text
+        },
+        timeout: 2000
+      }, function(err, rsp, body) {
+        if (err) {
+          console.warn(err.stack);
+        }
 
-      if (rsp.statusCode !== 200) {
-        console.warn(body);
-      }
+        if (rsp && rsp.statusCode !== 200) {
+          console.warn(body);
+        }
 
-      return callback();
-    });
+        return callback();
+      })
+      .on("error", function(err) {
+        console.warn("choir request error:", err.code, err.stack);
+      });
   }, http.globalAgent.maxSockets);
 
   this._write = function(chunk, encoding, callback) {
