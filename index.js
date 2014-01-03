@@ -19,7 +19,12 @@ http.globalAgent.maxSockets = 20;
 var LogStream = function(url) {
   stream.PassThrough.call(this);
 
-  request.get(url).pipe(this);
+  var source = request.get({
+    uri: url,
+    timeout: 0
+  });
+
+  source.pipe(this);
 };
 
 util.inherits(LogStream, stream.PassThrough);
