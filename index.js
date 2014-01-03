@@ -15,22 +15,7 @@ var CHOIR_IO_API_KEY = env.require("CHOIR_IO_API_KEY"),
 var LogStream = function(url) {
   stream.PassThrough.call(this);
 
-  var passthrough = this;
-
-  var connect = function() {
-    var source = request.get(url);
-    // TODO error / close handling
-    source.on("error", errorHandler);
-    source.pipe(passthrough);
-  };
-
-  var errorHandler = function(err) {
-    console.warn(err.stack);
-
-    setTimeout(connect, 5000);
-  };
-
-  connect();
+  request.get(url).pipe(this);
 };
 
 util.inherits(LogStream, stream.PassThrough);
