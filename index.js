@@ -1,9 +1,11 @@
 "use strict";
 
-var stream = require("stream"),
+var http = require("http"),
+    stream = require("stream"),
     util = require("util");
 
-var env = require("require-env"),
+var async = require("async"),
+    env = require("require-env"),
     request = require("crequest");
 
 var BinarySplitter = require("./lib/binary-splitter");
@@ -11,6 +13,8 @@ var BinarySplitter = require("./lib/binary-splitter");
 var CHOIR_IO_API_KEY = env.require("CHOIR_IO_API_KEY"),
     LOG_URL = env.require("LOG_URL"),
     SAMPLE_RATE = +process.env.SAMPLE_RATE || 100;
+
+http.globalAgent.maxSockets = 20;
 
 var LogStream = function(url) {
   stream.PassThrough.call(this);
@@ -37,6 +41,32 @@ util.inherits(SamplingStream, stream.Transform);
 var ChoirStream = function(key) {
   stream.Writable.call(this);
 
+  var queue = async.queue(function(task, callback) {
+    // throttle submitted events
+    if (queue.length() > 0) {
+      return callback();
+    }
+
+    return request.post({
+      uri: "https://api.choir.io/" + key,
+      form: {
+        label: task.style,
+        sound: "n/" + Math.round(Math.random()),
+        text: task.text
+      }
+    }, function(err, rsp, body) {
+      if (err) {
+        console.warn(err.stack);
+      }
+
+      if (rsp.statusCode !== 200) {
+        console.warn(body);
+      }
+
+      return callback();
+    });
+  }, http.globalAgent.maxSockets);
+
   this._write = function(chunk, encoding, callback) {
     var parts = chunk.toString().trim().split('"'),
         referrer = parts[3],
@@ -52,24 +82,12 @@ var ChoirStream = function(key) {
         text = util.format("%s: %s", style, agent);
       }
 
-      return request.post({
-        uri: "https://api.choir.io/" + key,
-        form: {
-          label: style,
-          sound: "n/" + Math.round(Math.random()),
-          text: text
-        }
-      }, function(err, rsp, body) {
-        if (err) {
-          console.warn(err.stack);
-        }
-
-        if (rsp.statusCode !== 200) {
-          console.warn(body);
-        }
-
-        return callback();
+      queue.push({
+        style: style,
+        text: text
       });
+
+      return callback();
     }
   };
 };
