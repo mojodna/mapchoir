@@ -53,7 +53,8 @@ var ChoirStream = function(key) {
         label: task.style,
         sound: "n/" + Math.round(Math.random()),
         text: task.text
-      }
+      },
+      timeout: 2000
     }, function(err, rsp, body) {
       if (err) {
         console.warn(err.stack);
