@@ -67,8 +67,7 @@ var ChoirStream = function(key) {
         text = util.format("%s: %s", style, agent);
       }
 
-      // fire and forget
-      request.post({
+      return request.post({
         uri: "https://api.choir.io/" + key,
         form: {
           label: style,
@@ -78,17 +77,15 @@ var ChoirStream = function(key) {
       }, function(err, rsp, body) {
         if (err) {
           console.warn(err.stack);
-          return;
         }
 
         if (rsp.statusCode !== 200) {
           console.warn(body);
-          return;
         }
+
+        return callback();
       });
     }
-
-    return callback();
   };
 };
 
