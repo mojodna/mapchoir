@@ -6,7 +6,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "crequest": "~0.1.3",
+    "crequest": "~0.1.6",
     "require-env": "0.0.4",
     "buffertools": "~2.0.0",
     "async": "~0.2.9"
